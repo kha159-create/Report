@@ -14,6 +14,7 @@ import {
   Store,
   Printer,
   ChevronRight,
+  MousePointer2,
   Wallet
 } from 'lucide-react';
 import { 
@@ -77,8 +78,6 @@ export default function App() {
           existing.visitorsLY += s.visitorsLY;
           existing.transactions += s.transactions;
           existing.transactionsLY += s.transactionsLY;
-          existing.salesPerVisitor += s.salesPerVisitor; // This will be averaged later or recalculated
-          existing.salesPerVisitorLY += s.salesPerVisitorLY;
         }
       });
     });
@@ -90,7 +89,6 @@ export default function App() {
       atvLY: s.transactionsLY > 0 ? s.salesLY / s.transactionsLY : 0,
       conversionRate: s.visitors > 0 ? (s.transactions / s.visitors) * 100 : 0,
       conversionRateLY: s.visitorsLY > 0 ? (s.transactionsLY / s.visitorsLY) * 100 : 0,
-      // Recalculate true Yearly SPV to avoid average of averages
       salesPerVisitor: s.visitors > 0 ? s.sales / s.visitors : 0,
       salesPerVisitorLY: s.visitorsLY > 0 ? s.salesLY / s.visitorsLY : 0,
     }));
@@ -186,131 +184,310 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-12 bg-[#FAFAFA]">
+    <div className="min-h-screen pb-12 bg-[#FAFAFA] font-['Inter']">
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
+          @page { size: A4; margin: 15mm 10mm; }
+          body { background: white !important; font-size: 10pt; -webkit-print-color-adjust: exact !important; }
           .no-print { display: none !important; }
-          .print-full-width { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
-          .card-break { break-inside: avoid; margin-bottom: 5mm !important; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
-          .print-grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 10px !important; }
+          .print-full-width { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+          .card-break { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm !important; box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+          .grid-3 { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
+          .grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 15px !important; }
         }
       `}</style>
 
+      {/* Navigation Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm no-print">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-500 p-2 rounded-xl shadow-lg shadow-orange-500/20">
-              <BarChart3 className="text-white w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
+                <BarChart3 className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="text-lg font-extrabold text-slate-900 leading-none tracking-tight">Retail Intel</h1>
+                <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.2em] mt-1">2025 Analytics Engine</p>
+              </div>
             </div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">Retail Intel <span className="text-orange-500">2025</span></h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrint} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 shadow-md">
-              <Printer className="w-4 h-4" /> Export PDF
-            </button>
-            <button onClick={exportToCSV} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95">
-              <Download className="w-4 h-4" /> CSV
-            </button>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handlePrint}
+                className="group flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
+              >
+                <Printer className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                Export to PDF
+              </button>
+              <button 
+                onClick={exportToCSV}
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 print-full-width">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 flex flex-wrap gap-6 items-center justify-between no-print">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Report Period</label>
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value as MonthKey)}
-              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all text-sm font-bold text-slate-700 w-64"
-            >
-              <option value="All">Full Year 2025</option>
-              {MONTHS.map(m => (
-                <option key={m.key} value={m.key}>{m.label} 2025</option>
-              ))}
-            </select>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print-full-width">
+        {/* Filters and Context */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 flex flex-wrap gap-8 items-center justify-between no-print">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Report Period</label>
+            <div className="relative group">
+              <select 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value as MonthKey)}
+                className="appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all text-sm font-bold text-slate-700 w-72"
+              >
+                <option value="All">Full Year 2025 Overview</option>
+                {MONTHS.map(m => (
+                  <option key={m.key} value={m.key}>{m.label} 2025</option>
+                ))}
+              </select>
+              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-orange-500" />
+            </div>
           </div>
-          <div className="bg-orange-50 px-4 py-2 rounded-xl border border-orange-100 text-orange-700 text-xs font-bold flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" /> Period: {selectedMonth === 'All' ? '2025 Total' : selectedMonth}
+
+          <div className="flex items-center gap-3 bg-orange-50 px-5 py-3 rounded-2xl border border-orange-100 text-orange-700 text-xs font-bold">
+            <div className="p-2 bg-orange-500 rounded-lg shadow-sm">
+              <AlertCircle className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-slate-400 font-medium uppercase text-[9px] tracking-tighter">Reporting Active</p>
+              <p className="text-sm">Period: {selectedMonth === 'All' ? '2025 Total' : selectedMonth}</p>
+            </div>
           </div>
         </div>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <SummaryCard title="Global Sales" value={formatSAR(totalSummary.sales)} icon={<TrendingUp />} color="orange" subtitle={`Target: ${formatSAR(totalSummary.target)}`} />
-          <SummaryCard title="Achievement" value={formatPercent(totalSummary.achievement)} icon={<Target />} color="emerald" progress={totalSummary.achievement} />
-          <SummaryCard title="Visitors" value={formatNumber(totalSummary.visitors)} icon={<Users />} color="indigo" />
+        {/* Global KPIs */}
+        <section className="mb-8">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-6 w-1.5 bg-orange-500 rounded-full" />
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Global Executive KPIs</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 grid-3">
+            <SummaryCard 
+              title="Global Gross Sales" 
+              value={formatSAR(totalSummary.sales)} 
+              icon={<TrendingUp className="w-5 h-5" />}
+              subtitle={`Annual Target: ${formatSAR(totalSummary.target)}`}
+              color="orange"
+            />
+            <SummaryCard 
+              title="Target Achievement" 
+              value={formatPercent(totalSummary.achievement)} 
+              icon={<Target className="w-5 h-5" />}
+              progress={totalSummary.achievement}
+              color="emerald"
+            />
+            <SummaryCard 
+              title="Customer Footfall" 
+              value={formatNumber(totalSummary.visitors)} 
+              icon={<Users className="w-5 h-5" />}
+              color="indigo"
+            />
+          </div>
         </section>
 
-        <section className="mb-12 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm card-break">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1.5 h-4 bg-orange-500 rounded-full" /> Performance Trend
-            </h2>
-            <div className="bg-slate-100 p-1 rounded-xl flex items-center no-print">
-              {(['sales', 'visitors', 'target'] as const).map(m => (
-                <button key={m} onClick={() => setChartMetric(m)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 uppercase'}`}>
-                  {m.toUpperCase()}
-                </button>
-              ))}
+        {/* Comparison Trends Chart */}
+        <section className="mb-12 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm card-break">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
+            <div className="flex items-center gap-3">
+              <div className="h-6 w-1.5 bg-orange-500 rounded-full" />
+              <div>
+                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Performance Trends</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
+                  {chartMetric === 'target' ? '2025 Sales vs Target' : 'Comparing 2025 vs 2024'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 no-print">
+              <div className="bg-slate-100 p-1 rounded-2xl flex items-center shadow-inner">
+                {(['sales', 'visitors', 'target'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setChartMetric(m)}
+                    className={`px-5 py-2 rounded-xl text-[10px] font-black tracking-wider transition-all duration-200 ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm scale-[1.02]' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {m.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              <div className="flex items-center gap-4 px-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    {chartMetric === 'target' ? 'Actual' : '2025'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-slate-300" />
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    {chartMetric === 'target' ? 'Target' : '2024'}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="h-[300px] w-full">
+          
+          <div className="h-[350px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={yearlyComparisonChartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={6}>
+              <BarChart
+                data={yearlyComparisonChartData}
+                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+                barGap={8}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} tickFormatter={formatCompactNumber} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="current" fill="#f97316" radius={[4, 4, 0, 0]} barSize={24} />
-                <Bar dataKey="previous" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={24} />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
+                  dy={10}
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
+                  tickFormatter={formatCompactNumber}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ 
+                    borderRadius: '20px', 
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                    padding: '16px'
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const isTarget = chartMetric === 'target';
+                    const label = isTarget 
+                      ? (name === 'current' ? 'Actual Sales' : 'Sales Target')
+                      : (chartMetric === 'sales' ? 'Sales' : 'Visitors');
+                    const val = (chartMetric === 'sales' || chartMetric === 'target') ? formatSAR(value) : formatNumber(value);
+                    return [val, label];
+                  }}
+                  labelStyle={{ fontWeight: 800, color: '#1e293b', marginBottom: '4px', fontSize: '13px' }}
+                />
+                <Bar dataKey="current" fill="#f97316" radius={[6, 6, 0, 0]} barSize={22} animationDuration={1000} />
+                <Bar dataKey="previous" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={22} animationDuration={1200} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-6 mb-12">
-          {activeData.stores.map((store) => (
-            <div key={store.name} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden card-break hover:border-orange-300 transition-colors">
-              <div className="px-6 py-4 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-                <div className="flex items-center gap-3">
-                  <Store className="w-4 h-4 text-orange-600" />
-                  <h3 className="font-extrabold text-slate-800 text-sm">{store.name}</h3>
+        {/* Branch Performance Detail */}
+        <section className="space-y-6 mb-16">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-6 w-1.5 bg-slate-900 rounded-full" />
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Branch Performance Detail</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            {activeData.stores.map((store) => (
+              <div key={store.name} className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden card-break hover:border-orange-300 transition-all duration-300">
+                {/* Branch Header */}
+                <div className="px-8 py-5 flex items-center justify-between border-b border-slate-100 bg-slate-50/30">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-orange-500/10 p-2.5 rounded-2xl">
+                      <Store className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900 tracking-tight">{store.name}</h3>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Branch Profile</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ACHIEVEMENT</span>
+                    <span className={`px-4 py-1.5 rounded-full text-xs font-black border ${store.achievement >= 100 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                      {formatPercent(store.achievement)}
+                    </span>
+                  </div>
                 </div>
-                <div className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-black rounded-full border border-emerald-100">
-                  {formatPercent(store.achievement)} ACH
+                
+                {/* Branch Metrics */}
+                <div className="p-8 grid grid-cols-1 md:grid-cols-4 gap-8 grid-4">
+                  <div className="space-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Total Sales</span>
+                      <p className="text-xl font-black text-slate-900">{formatSAR(store.sales)}</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
+                        <span>VS Target</span>
+                        <span>{formatPercent(store.achievement)}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'} transition-all duration-1000`} 
+                          style={{ width: `${Math.min(store.achievement, 100)}%` }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Visitors</span>
+                    <p className="text-xl font-black text-slate-900">{formatNumber(store.visitors)}</p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">Conv: {formatPercent(store.conversionRate)}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">ATV</span>
+                    <p className="text-xl font-black text-slate-900">{formatSAR(store.atv)}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Avg Transaction</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-wider">SPV</span>
+                    <p className="text-xl font-black text-orange-600">{formatSAR(store.salesPerVisitor)}</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Sales Per Visitor</p>
+                  </div>
                 </div>
               </div>
-              <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6 print-grid-4">
-                <MetricBox label="Sales" value={formatSAR(store.sales)} subValue={`Target: ${formatSAR(store.salesTarget)}`} />
-                <MetricBox label="Visitors" value={formatNumber(store.visitors)} subValue={`Conv: ${formatPercent(store.conversionRate)}`} />
-                <MetricBox label="ATV" value={formatSAR(store.atv)} />
-                <MetricBox label="SPV" value={formatSAR(store.salesPerVisitor)} color="orange" />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </section>
 
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-break">
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-            <TableIcon className="w-4 h-4 text-slate-500" />
-            <h3 className="text-xs font-black text-slate-600 uppercase tracking-widest">Growth Analysis Table</h3>
+        {/* Growth Analysis Table */}
+        <section className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden card-break">
+          <div className="px-10 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                <TableIcon className="w-5 h-5 text-white" />
+              </div>
+              YoY Growth Analysis (2025 vs 2024)
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-slate-100/50 text-slate-500 font-black uppercase border-b border-slate-200">
-                  <th className="px-6 py-4">Branch / KPI</th>
-                  <th className="px-4 py-4 text-center">2025 Value</th>
-                  <th className="px-4 py-4 text-center">2024 Value</th>
-                  <th className="px-4 py-4 text-center">Difference</th>
-                  <th className="px-6 py-4 text-center">Growth %</th>
+                <tr className="bg-slate-100/50 text-slate-500 font-black uppercase tracking-widest border-b border-slate-200">
+                  <th className="px-10 py-5">Branch / KPIs</th>
+                  <th className="px-4 py-5 text-center">2025 Value</th>
+                  <th className="px-4 py-5 text-center">2024 Value</th>
+                  <th className="px-4 py-5 text-center">Δ Absolute</th>
+                  <th className="px-10 py-5 text-center">Δ Growth %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {comparisonData.map((store) => (
                   <React.Fragment key={store.name}>
-                    <tr className="bg-orange-50/20"><td colSpan={5} className="px-6 py-2 font-black text-orange-600 uppercase text-[10px]">{store.name}</td></tr>
+                    <tr className="bg-slate-50/60">
+                      <td colSpan={5} className="px-10 py-4 font-black text-orange-600 border-y border-slate-200/50 bg-orange-50/40 uppercase tracking-[0.1em] text-[11px]">
+                        {store.name}
+                      </td>
+                    </tr>
                     <ComparisonRow label="Sales" metric={store.metrics.sales} isCurrency />
                     <ComparisonRow label="Visitors" metric={store.metrics.visitors} />
                     <ComparisonRow label="ATV" metric={store.metrics.atv} isCurrency />
@@ -321,60 +498,79 @@ export default function App() {
             </table>
           </div>
         </section>
-      </main>
-    </div>
-  );
-}
 
-function MetricBox({ label, value, subValue, color }: any) {
-  return (
-    <div className="space-y-1">
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{label}</span>
-      <p className={`text-lg font-black ${color === 'orange' ? 'text-orange-600' : 'text-slate-900'}`}>{value}</p>
-      {subValue && <p className="text-[10px] text-slate-500 font-bold">{subValue}</p>}
+        <footer className="mt-16 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] hidden print:block border-t border-slate-100 pt-10">
+          © 2025 Retail Intelligence Systems | Confidential
+        </footer>
+      </main>
     </div>
   );
 }
 
 function ComparisonRow({ label, metric, isCurrency }: { label: string; metric: ComparisonMetric; isCurrency?: boolean }) {
   const format = (val: number) => isCurrency ? formatSAR(val) : formatNumber(val);
-  const isPos = metric.diff >= 0;
+  const isPositive = metric.pctChange >= 0;
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
-      <td className="px-6 py-3 font-bold text-slate-600 flex items-center gap-2"><ChevronRight className="w-3 h-3 text-slate-300" />{label}</td>
-      <td className="px-4 py-3 text-center font-black text-slate-900">{format(metric.current)}</td>
-      <td className="px-4 py-3 text-center text-slate-400 font-medium italic">{format(metric.previous)}</td>
-      <td className={`px-4 py-3 text-center font-extrabold ${metric.diff > 0 ? 'text-emerald-600' : metric.diff < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+    <tr className="hover:bg-orange-50/20 transition-all group">
+      <td className="px-10 py-4 font-bold text-slate-600 flex items-center gap-3">
+        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-500 transition-colors" />
+        {label}
+      </td>
+      <td className="px-4 py-4 text-center font-extrabold text-slate-900">{format(metric.current)}</td>
+      <td className="px-4 py-4 text-center text-slate-400 font-medium italic">{format(metric.previous)}</td>
+      <td className={`px-4 py-4 text-center font-black ${metric.diff > 0 ? 'text-emerald-600' : metric.diff < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
         {metric.diff > 0 ? '+' : ''}{format(metric.diff)}
       </td>
-      <td className="px-6 py-3 text-center">
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg font-black text-[10px] ${isPos ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-          {isPos ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+      <td className="px-10 py-4 text-center font-black">
+        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${isPositive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+          {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
           {Math.abs(metric.pctChange).toFixed(1)}%
-        </span>
+        </div>
       </td>
     </tr>
   );
 }
 
 function SummaryCard({ title, value, icon, subtitle, progress, color }: any) {
-  const themes: any = {
-    orange: 'bg-orange-500',
-    emerald: 'bg-emerald-500',
-    indigo: 'bg-indigo-500',
+  const colors: any = {
+    orange: { bg: 'bg-orange-500', icon: 'shadow-orange-200' },
+    emerald: { bg: 'bg-emerald-500', icon: 'shadow-emerald-200' },
+    indigo: { bg: 'bg-indigo-500', icon: 'shadow-indigo-200' },
   };
+  
+  const theme = colors[color];
+
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm card-break">
-      <div className="flex justify-between items-start mb-4">
-        <div className={`${themes[color]} p-2 rounded-lg text-white shadow-lg`}>{icon}</div>
-        {progress !== undefined && <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">{progress.toFixed(0)}% ACH</span>}
+    <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden card-break">
+      <div className="flex justify-between items-start mb-8">
+        <div className={`p-3.5 rounded-[1.25rem] text-white shadow-lg ${theme.bg} ${theme.icon}`}>
+          {icon}
+        </div>
+        {progress !== undefined && (
+          <div className="px-4 py-1.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 tracking-wider">
+             {progress.toFixed(0)}% DONE
+          </div>
+        )}
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-      <h4 className="text-xl font-black text-slate-900">{value}</h4>
-      {subtitle && <p className="text-[10px] text-slate-500 font-bold mt-1">{subtitle}</p>}
+      
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
+        <h4 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h4>
+        {subtitle && <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{subtitle}</p>}
+      </div>
+      
       {progress !== undefined && (
-        <div className="w-full h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden">
-          <div className={`${themes[color]} h-full transition-all duration-1000`} style={{ width: `${Math.min(progress, 100)}%` }} />
+        <div className="mt-8">
+          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-2 text-slate-400">
+            <span>Progress Bar</span>
+            <span>{progress.toFixed(1)}%</span>
+          </div>
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+            <div 
+              className={`h-full ${theme.bg} transition-all duration-1000 shadow-sm`} 
+              style={{ width: `${Math.min(progress, 100)}%` }} 
+            />
+          </div>
         </div>
       )}
     </div>
