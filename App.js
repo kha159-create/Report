@@ -284,12 +284,6 @@ export default function App() {
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">Performance Snapshot</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Achievement</span>
-                  <div className=${`px-5 py-2 rounded-full text-xs font-black border-2 ${store.achievement >= 100 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                    ${formatPercent(store.achievement)}
-                  </div>
-                </div>
               </div>
               
               <!-- Card Metrics Grid -->
@@ -298,6 +292,13 @@ export default function App() {
                   <div>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Gross Sales</span>
                     <p className="text-2xl font-black text-slate-900 mt-1">${formatSAR(store.sales)}</p>
+                    <!-- Achievement moved here -->
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className=${`w-1.5 h-1.5 rounded-full ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'}`} />
+                      <p className=${`text-[11px] font-black uppercase tracking-wider ${store.achievement >= 100 ? 'text-emerald-600' : 'text-orange-600'}`}>
+                        Achievement: ${formatPercent(store.achievement)}
+                      </p>
+                    </div>
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                     <div className=${`h-full rounded-full transition-all duration-1000 ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'}`} style=${{ width: `${Math.min(store.achievement, 100)}%` }} />
@@ -376,7 +377,7 @@ export default function App() {
         </section>
         
         <footer className="mt-20 text-center pb-10">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">© 2025 Retail Intel Systems | Confidential Enterprise Data</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">© 2026 Retail Intel Orange Systems | Copyright Khaleel Alsani</p>
         </footer>
       </main>
     </div>
