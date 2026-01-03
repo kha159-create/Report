@@ -204,16 +204,20 @@ export default function App() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 flex flex-wrap gap-8 items-center justify-between no-print">
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Period</label>
-            <select 
-              value=${selectedMonth}
-              onChange=${(e) => setSelectedMonth(e.target.value)}
-              className="appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all text-sm font-bold text-slate-700 w-72"
-            >
-              <option value="All">Full Year 2025 Overview</option>
-              ${MONTHS.map(m => html`<option key=${m.key} value=${m.key}>${m.label} 2025</option>`)}
-            </select>
+            <div className="relative">
+              <select 
+                value=${selectedMonth}
+                onChange=${(e) => setSelectedMonth(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all text-sm font-bold text-slate-700 w-72"
+              >
+                <option value="All">Full Year 2025 Overview</option>
+                ${MONTHS.map(m => html`<option key=${m.key} value=${m.key}>${m.label} 2025</option>`)}
+              </select>
+              <${Lucide.Calendar} className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            </div>
           </div>
-          <div className="bg-orange-50 px-5 py-3 rounded-2xl border border-orange-100 text-orange-700 text-xs font-bold">
+          <div className="bg-orange-50 px-5 py-3 rounded-2xl border border-orange-100 text-orange-700 text-xs font-bold flex items-center gap-2">
+            <${Lucide.AlertCircle} className="w-4 h-4" />
             Period: ${selectedMonth === 'All' ? '2025 Total' : selectedMonth}
           </div>
         </div>
@@ -229,9 +233,9 @@ export default function App() {
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <div className="h-6 w-1.5 bg-orange-500 rounded-full" /> Performance Trends
             </h2>
-            <div className="bg-slate-100 p-1 rounded-2xl flex items-center no-print shadow-inner">
+            <div className="bg-slate-100 p-1 rounded-2xl flex items-center no-print shadow-inner border border-slate-200">
               ${['sales', 'visitors', 'target'].map(m => html`
-                <button key=${m} onClick=${() => setChartMetric(m)} className=${`px-5 py-2 rounded-xl text-[10px] font-black tracking-wider transition-all duration-200 ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <button key=${m} onClick=${() => setChartMetric(m)} className=${`px-5 py-2 rounded-xl text-[10px] font-black tracking-wider transition-all duration-200 ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'}`}>
                   ${m.toUpperCase()}
                 </button>
               `)}
@@ -243,7 +247,7 @@ export default function App() {
                 <${Recharts.CartesianGrid} strokeDasharray="3 3" vertical=${false} stroke="#f1f5f9" />
                 <${Recharts.XAxis} dataKey="name" axisLine=${false} tickLine=${false} tick=${{ fill: '#64748b', fontSize: 10, fontWeight: 800 }} dy=${10} />
                 <${Recharts.YAxis} axisLine=${false} tickLine=${false} tick=${{ fill: '#64748b', fontSize: 10, fontWeight: 800 }} tickFormatter=${formatCompactNumber} />
-                <${Recharts.Tooltip} cursor=${{ fill: '#f8fafc' }} />
+                <${Recharts.Tooltip} cursor=${{ fill: '#f8fafc' }} contentStyle=${{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                 <${Recharts.Bar} dataKey="current" fill="#f97316" radius=${[6, 6, 0, 0]} barSize=${22} />
                 <${Recharts.Bar} dataKey="previous" fill="#cbd5e1" radius=${[6, 6, 0, 0]} barSize=${22} />
               </${Recharts.BarChart}>
@@ -252,37 +256,63 @@ export default function App() {
         </section>
 
         <section className="space-y-6 mb-16">
+          <div className="flex items-center gap-3 mb-2">
+             <div className="h-6 w-1.5 bg-slate-900 rounded-full" />
+             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Branch Performance Cards</h2>
+          </div>
           ${activeData.stores.map((store) => html`
-            <div key=${store.name} className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden card-break">
+            <div key=${store.name} className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden card-break hover:border-orange-300 transition-all">
               <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <${Lucide.Store} className="w-5 h-5 text-orange-600" />
                   <h3 className="text-base font-extrabold text-slate-900">${store.name}</h3>
                 </div>
-                <span className=${`px-4 py-1.5 rounded-full text-xs font-black border ${store.achievement >= 100 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                  ${formatPercent(store.achievement)}
-                </span>
+                <div className="flex items-center gap-3">
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ACHIEVEMENT</span>
+                   <span className=${`px-4 py-1.5 rounded-full text-xs font-black border ${store.achievement >= 100 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                    ${formatPercent(store.achievement)}
+                   </span>
+                </div>
               </div>
               <div className="p-8 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div className="space-y-3">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Sales</span>
-                  <p className="text-xl font-black text-slate-900">${formatSAR(store.sales)}</p>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Sales</span>
+                    <p className="text-xl font-black text-slate-900">${formatSAR(store.sales)}</p>
+                  </div>
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className=${`h-full ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'}`} style=${{ width: `${Math.min(store.achievement, 100)}%` }} />
                   </div>
                 </div>
-                <div><span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Visitors</span><p className="text-xl font-black text-slate-900">${formatNumber(store.visitors)}</p></div>
-                <div><span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">ATV</span><p className="text-xl font-black text-slate-900">${formatSAR(store.atv)}</p></div>
-                <div><span className="text-[10px] font-black text-orange-500 uppercase tracking-wider">SPV</span><p className="text-xl font-black text-orange-600">${formatSAR(store.salesPerVisitor)}</p></div>
+                <div>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Visitors</span>
+                   <p className="text-xl font-black text-slate-900">${formatNumber(store.visitors)}</p>
+                   <div className="flex items-center gap-1.5 mt-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <p className="text-[10px] text-slate-500 font-bold uppercase">Conv: ${formatPercent(store.conversionRate)}</p>
+                   </div>
+                </div>
+                <div>
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">ATV</span>
+                   <p className="text-xl font-black text-slate-900">${formatSAR(store.atv)}</p>
+                   <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Avg Transaction</p>
+                </div>
+                <div>
+                   <span className="text-[10px] font-black text-orange-500 uppercase tracking-wider">SPV</span>
+                   <p className="text-xl font-black text-orange-600">${formatSAR(store.salesPerVisitor)}</p>
+                   <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Sales Per Visitor</p>
+                </div>
               </div>
             </div>
           `)}
         </section>
 
         <section className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden card-break">
-          <div className="px-10 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center"><${Lucide.TableIcon} className="w-5 h-5 text-white" /></div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">YoY Growth Analysis</h3>
+          <div className="px-10 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+               <div className="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20"><${Lucide.TableIcon} className="w-5 h-5 text-white" /></div>
+               <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">YoY Growth Analysis (2025 vs 2024)</h3>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -291,15 +321,18 @@ export default function App() {
                   <th className="px-10 py-5">Branch / KPIs</th>
                   <th className="px-4 py-5 text-center">2025 Value</th>
                   <th className="px-4 py-5 text-center">2024 Value</th>
+                  <th className="px-4 py-5 text-center">Absolute Δ</th>
                   <th className="px-10 py-5 text-center">Growth %</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 ${comparisonData.map((store) => html`
                   <${React.Fragment} key=${store.name}>
-                    <tr className="bg-slate-50/60"><td colSpan="4" className="px-10 py-4 font-black text-orange-600 uppercase tracking-[0.1em]">${store.name}</td></tr>
+                    <tr className="bg-slate-50/60"><td colSpan="5" className="px-10 py-4 font-black text-orange-600 border-y border-slate-200/50 uppercase tracking-[0.1em] text-[11px]">${store.name}</td></tr>
                     <${ComparisonRow} label="Sales" metric=${store.metrics.sales} isCurrency />
                     <${ComparisonRow} label="Visitors" metric=${store.metrics.visitors} />
+                    <${ComparisonRow} label="ATV" metric=${store.metrics.atv} isCurrency />
+                    <${ComparisonRow} label="Conversion" metric=${store.metrics.conversionRate} isPercent />
                     <${ComparisonRow} label="SPV" metric=${store.metrics.salesPerVisitor} isCurrency />
                   </${React.Fragment}>
                 `)}
@@ -312,16 +345,23 @@ export default function App() {
   `;
 }
 
-function ComparisonRow({ label, metric, isCurrency }) {
-  const format = (val) => isCurrency ? formatSAR(val) : formatNumber(val);
+function ComparisonRow({ label, metric, isCurrency, isPercent }) {
+  const format = (val) => isCurrency ? formatSAR(val) : (isPercent ? formatPercent(val) : formatNumber(val));
   const isPos = metric.pctChange >= 0;
   return html`
-    <tr className="hover:bg-orange-50/20 group">
-      <td className="px-10 py-4 font-bold text-slate-600 flex items-center gap-3"><${Lucide.ChevronRight} className="w-3.5 h-3.5" />${label}</td>
+    <tr className="hover:bg-orange-50/20 group transition-all">
+      <td className="px-10 py-4 font-bold text-slate-600 flex items-center gap-3">
+        <${Lucide.ChevronRight} className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-500 transition-colors" />
+        ${label}
+      </td>
       <td className="px-4 py-4 text-center font-extrabold text-slate-900">${format(metric.current)}</td>
       <td className="px-4 py-4 text-center text-slate-400 font-medium italic">${format(metric.previous)}</td>
+      <td className=${`px-4 py-4 text-center font-black ${metric.diff > 0 ? 'text-emerald-600' : metric.diff < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+         ${metric.diff > 0 ? '+' : ''}${format(metric.diff)}
+      </td>
       <td className="px-10 py-4 text-center font-black">
         <div className=${`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${isPos ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
+          ${isPos ? html`<${Lucide.ArrowUpRight} className="w-3.5 h-3.5" />` : html`<${Lucide.ArrowDownRight} className="w-3.5 h-3.5" />`}
           ${Math.abs(metric.pctChange).toFixed(1)}%
         </div>
       </td>
@@ -331,15 +371,26 @@ function ComparisonRow({ label, metric, isCurrency }) {
 
 function SummaryCard({ title, value, icon, subtitle, progress, color }) {
   const bgClass = { orange: 'bg-orange-500', emerald: 'bg-emerald-500', indigo: 'bg-indigo-500' }[color];
+  const shadowClass = { orange: 'shadow-orange-200', emerald: 'shadow-emerald-200', indigo: 'shadow-indigo-200' }[color];
+  
   return html`
-    <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm hover:shadow-xl transition-all card-break">
+    <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm hover:shadow-xl transition-all duration-300 card-break relative overflow-hidden">
       <div className="flex justify-between items-start mb-8">
-        <div className=${`p-3.5 rounded-[1.25rem] text-white shadow-lg ${bgClass}`}>${icon}</div>
-        ${progress !== undefined && html`<div className="px-4 py-1.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600">${progress.toFixed(0)}% ACH</div>`}
+        <div className=${`p-3.5 rounded-[1.25rem] text-white shadow-lg ${bgClass} ${shadowClass}`}>${icon}</div>
+        ${progress !== undefined && html`<div className="px-4 py-1.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100">${progress.toFixed(0)}% DONE</div>`}
       </div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">${title}</p>
-      <h4 className="text-2xl font-black text-slate-900">${value}</h4>
-      ${subtitle && html`<p className="text-[11px] text-slate-500 font-bold uppercase mt-1">${subtitle}</p>`}
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">${title}</p>
+        <h4 className="text-2xl font-black text-slate-900 tracking-tight">${value}</h4>
+        ${subtitle && html`<p className="text-[11px] text-slate-500 font-bold uppercase mt-1 tracking-tight">${subtitle}</p>`}
+      </div>
+      ${progress !== undefined && html`
+        <div className="mt-8">
+           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+              <div className=${`h-full ${bgClass} transition-all duration-1000`} style=${{ width: `${Math.min(progress, 100)}%` }} />
+           </div>
+        </div>
+      `}
     </div>
   `;
 }
