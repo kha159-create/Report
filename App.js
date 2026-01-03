@@ -28,7 +28,10 @@ export default function App() {
 
   const activeData = useMemo(() => {
     if (selectedMonth !== 'All') {
-      return DASHBOARD_DATA[selectedMonth];
+      const monthData = DASHBOARD_DATA[selectedMonth];
+      const totalVisitorsLY = monthData.stores.reduce((acc, s) => acc + s.visitorsLY, 0);
+      const totalTransactions = monthData.stores.reduce((acc, s) => acc + s.transactions, 0);
+      return { ...monthData, totalVisitorsLY, totalTransactions };
     }
 
     const allMonths = Object.keys(DASHBOARD_DATA);
@@ -37,6 +40,8 @@ export default function App() {
     let totalSales = 0;
     let totalSalesLY = 0;
     let areaTarget = 0;
+    let totalVisitorsLY = 0;
+    let totalTransactions = 0;
 
     allMonths.forEach(mKey => {
       const monthData = DASHBOARD_DATA[mKey];
@@ -45,6 +50,8 @@ export default function App() {
       areaTarget += monthData.areaTarget;
 
       monthData.stores.forEach(s => {
+        totalVisitorsLY += s.visitorsLY;
+        totalTransactions += s.transactions;
         if (!yearlyStores[s.name]) {
           yearlyStores[s.name] = { ...s };
         } else {
@@ -75,6 +82,8 @@ export default function App() {
       month: 'Yearly Total',
       totalSales,
       totalSalesLY,
+      totalVisitorsLY,
+      totalTransactions,
       areaTarget,
       stores
     };
@@ -121,8 +130,14 @@ export default function App() {
     const sales = activeData.stores.reduce((acc, s) => acc + s.sales, 0);
     const target = activeData.stores.reduce((acc, s) => acc + s.salesTarget, 0);
     const visitors = activeData.stores.reduce((acc, s) => acc + s.visitors, 0);
+    const transactions = activeData.stores.reduce((acc, s) => acc + s.transactions, 0);
+    
     const achievement = target > 0 ? (sales / target) * 100 : 0;
-    return { sales, target, visitors, achievement };
+    const atv = transactions > 0 ? sales / transactions : 0;
+    const conv = visitors > 0 ? (transactions / visitors) * 100 : 0;
+    const spv = visitors > 0 ? sales / visitors : 0;
+
+    return { sales, target, visitors, achievement, atv, conv, spv };
   }, [activeData]);
 
   const handlePrint = () => window.print();
@@ -150,7 +165,7 @@ export default function App() {
               <${Lucide.BarChart3} className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900 tracking-tight">Retail Intel Pro</h1>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">Khaleel Area Report</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest">2025 Live Analytics</p>
@@ -200,27 +215,31 @@ export default function App() {
         <!-- KPI Scorecards -->
         <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <${SummaryCard} 
-            title="Total Revenue" 
+            title="Total Sales" 
             value=${formatSAR(totalSummary.sales)} 
             icon=${html`<${Lucide.TrendingUp} className="w-6 h-6" />`} 
             color="orange" 
-            subtitle=${`Target: ${formatSAR(totalSummary.target)}`}
+            subtitle=${`Target: ${formatSAR(totalSummary.target)} | LY: ${formatSAR(activeData.totalSalesLY)}`}
             progress=${totalSummary.achievement}
-          />
-          <${SummaryCard} 
-            title="Avg Achievement" 
-            value=${formatPercent(totalSummary.achievement)} 
-            icon=${html`<${Lucide.Target} className="w-6 h-6" />`} 
-            color="emerald" 
-            progress=${totalSummary.achievement}
-            subtitle="Global Sales Target"
           />
           <${SummaryCard} 
             title="Visitor Traffic" 
             value=${formatNumber(totalSummary.visitors)} 
             icon=${html`<${Lucide.Users} className="w-6 h-6" />`} 
             color="indigo" 
-            subtitle="Walk-in Customers"
+            subtitle=${`Walk-in Customers | LY: ${formatNumber(activeData.totalVisitorsLY)}`}
+          />
+          <${SummaryCard} 
+            title="Regional KPIs" 
+            value="Area Performance"
+            icon=${html`<${Lucide.Zap} className="w-6 h-6" />`} 
+            color="emerald" 
+            isKPIList
+            kpis=${[
+              { label: 'Avg ATV', val: formatSAR(totalSummary.atv) },
+              { label: 'Avg CONV', val: formatPercent(totalSummary.conv) },
+              { label: 'Avg SPV', val: formatSAR(totalSummary.spv) }
+            ]}
           />
         </section>
 
@@ -237,7 +256,7 @@ export default function App() {
             
             <div className="flex items-center gap-4 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/50 no-print">
               ${['sales', 'visitors', 'target'].map(m => html`
-                <button key=${m} onClick=${() => setChartMetric(m)} className=${`px-6 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all ${chartMetric === m ? 'bg-white text-orange-600 shadow-md ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-800'}`}>
+                <button key=${m} onClick=${() => setChartMetric(m)} className=${`px-6 py-2.5 rounded-xl text-[10px] font-black tracking-widest transition-all ${chartMetric === m ? 'bg-white text-orange-600 shadow-md ring-1 ring-slate-200/50' : 'text-slate-500 hover:text-slate-700'}`}>
                   ${m.toUpperCase()}
                 </button>
               `)}
@@ -292,7 +311,7 @@ export default function App() {
                   <div>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Gross Sales</span>
                     <p className="text-2xl font-black text-slate-900 mt-1">${formatSAR(store.sales)}</p>
-                    <!-- Achievement moved here -->
+                    <p className="text-[10px] text-slate-400 font-bold mt-1">LY: ${formatSAR(store.salesLY)}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className=${`w-1.5 h-1.5 rounded-full ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'}`} />
                       <p className=${`text-[11px] font-black uppercase tracking-wider ${store.achievement >= 100 ? 'text-emerald-600' : 'text-orange-600'}`}>
@@ -308,15 +327,18 @@ export default function App() {
                 <div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Customer Footfall</span>
                   <p className="text-2xl font-black text-slate-900 mt-1">${formatNumber(store.visitors)}</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">LY: ${formatNumber(store.visitorsLY)}</p>
                   <div className="flex items-center gap-2 mt-3 text-emerald-600 font-black text-[10px] bg-emerald-50 w-fit px-3 py-1 rounded-lg">
                     <${Lucide.MousePointer2} className="w-3 h-3" />
                     CONV: ${formatPercent(store.conversionRate)}
+                    <span className="ml-2 text-slate-400 opacity-70">(LY: ${formatPercent(store.conversionRateLY)})</span>
                   </div>
                 </div>
 
                 <div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Average Basket (ATV)</span>
                   <p className="text-2xl font-black text-slate-900 mt-1">${formatSAR(store.atv)}</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">LY: ${formatSAR(store.atvLY)}</p>
                   <div className="flex items-center gap-2 mt-3 text-indigo-600 font-black text-[10px] bg-indigo-50 w-fit px-3 py-1 rounded-lg">
                     <${Lucide.Wallet} className="w-3 h-3" />
                     AVG TRANS
@@ -326,6 +348,7 @@ export default function App() {
                 <div className="bg-orange-50/30 p-6 rounded-[1.5rem] border border-orange-100/50">
                   <span className="text-[9px] font-black text-orange-500 uppercase tracking-[0.2em]">Efficiency (SPV)</span>
                   <p className="text-2xl font-black text-orange-600 mt-1">${formatSAR(store.salesPerVisitor)}</p>
+                  <p className="text-[10px] text-orange-400/70 font-bold mt-1">LY: ${formatSAR(store.salesPerVisitorLY)}</p>
                   <p className="text-[9px] text-orange-400 font-bold uppercase mt-2">Revenue Per Visitor</p>
                 </div>
               </div>
@@ -410,7 +433,7 @@ function TableMetricRow({ label, metric, isCurrency, isPercent }) {
   `;
 }
 
-function SummaryCard({ title, value, icon, subtitle, progress, color }) {
+function SummaryCard({ title, value, icon, subtitle, progress, color, isKPIList, kpis }) {
   const themes = {
     orange: 'from-orange-500 to-orange-600 shadow-orange-500/20',
     emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
@@ -423,18 +446,34 @@ function SummaryCard({ title, value, icon, subtitle, progress, color }) {
         <div className=${`p-4 rounded-2xl text-white bg-gradient-to-br shadow-xl ${themes[color]}`}>
           ${icon}
         </div>
-        ${progress !== undefined && html`
+        ${progress !== undefined && !isKPIList && html`
           <div className="px-5 py-2 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest">
             ${progress.toFixed(0)}% Done
           </div>
         `}
       </div>
-      <div className="space-y-2">
+      
+      <div className="space-y-4">
         <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">${title}</span>
-        <h4 className="text-3xl font-black text-slate-900 tracking-tighter">${value}</h4>
-        ${subtitle && html`<p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight">${subtitle}</p>`}
+        
+        ${isKPIList ? html`
+          <div className="grid grid-cols-1 gap-3 pt-2">
+            ${kpis.map(kpi => html`
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2 last:border-0">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">${kpi.label}</span>
+                <span className="text-sm font-black text-slate-900">${kpi.val}</span>
+              </div>
+            `)}
+          </div>
+        ` : html`
+          <div>
+            <h4 className="text-3xl font-black text-slate-900 tracking-tighter">${value}</h4>
+            ${subtitle && html`<p className="text-[11px] text-slate-500 font-bold uppercase tracking-tight mt-1">${subtitle}</p>`}
+          </div>
+        `}
       </div>
-      ${progress !== undefined && html`
+
+      ${progress !== undefined && !isKPIList && html`
         <div className="mt-8 pt-8 border-t border-slate-50">
            <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
              <span>Market Reach</span>
