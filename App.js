@@ -23,7 +23,7 @@ const formatCompactNumber = (val) => {
 const formatPercent = (val) => `${val.toFixed(1)}%`;
 
 // Component for the "Performance Pulse" indicator
-const PulseIndicator = ({ current, previous, label = "" }) => {
+const PulseIndicator = ({ current, previous, label = "", prevValueFormatted = "" }) => {
   if (!previous || previous === 0) return null;
   const pctChange = ((current - previous) / previous) * 100;
   const isPos = pctChange >= 0;
@@ -33,6 +33,7 @@ const PulseIndicator = ({ current, previous, label = "" }) => {
       ${isPos ? html`<${Lucide.TrendingUp} className="w-3 h-3" />` : html`<${Lucide.TrendingDown} className="w-3 h-3" />`}
       ${Math.abs(pctChange).toFixed(1)}%
       ${label && html`<span className="opacity-60 ml-1">${label}</span>`}
+      ${prevValueFormatted && html`<span className="opacity-40 ml-1 font-bold"> (LY: ${prevValueFormatted})</span>`}
     </div>
   `;
 };
@@ -210,7 +211,7 @@ export default function App() {
             color="orange" 
             subtitle=${`Target: ${formatSAR(totalSummary.target)}`}
             progress=${totalSummary.achievement}
-            pulse=${html`<${PulseIndicator} current=${activeData.totalSales} previous=${activeData.totalSalesLY} label="vs LY" />`}
+            pulse=${html`<${PulseIndicator} current=${activeData.totalSales} previous=${activeData.totalSalesLY} label="vs LY" prevValueFormatted=${formatSAR(activeData.totalSalesLY)} />`}
           />
           <${SummaryCard} 
             title="Visitor Traffic" 
@@ -218,7 +219,7 @@ export default function App() {
             icon=${html`<${Lucide.Users} className="w-6 h-6" />`} 
             color="indigo" 
             subtitle=${`Walk-in Customers`}
-            pulse=${html`<${PulseIndicator} current=${activeData.totalVisitors} previous=${activeData.totalVisitorsLY} label="vs LY" />`}
+            pulse=${html`<${PulseIndicator} current=${activeData.totalVisitors} previous=${activeData.totalVisitorsLY} label="vs LY" prevValueFormatted=${formatNumber(activeData.totalVisitorsLY)} />`}
           />
           <${SummaryCard} 
             title="Regional KPIs" 
@@ -431,11 +432,6 @@ function SummaryCard({ title, value, icon, subtitle, progress, color, isKPIList,
           ${icon}
         </div>
         <div className="flex flex-col items-end gap-2">
-          ${progress !== undefined && !isKPIList && html`
-            <div className="px-4 py-1 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest">
-              ${progress.toFixed(0)}% Done
-            </div>
-          `}
           ${pulse}
         </div>
       </div>
@@ -461,9 +457,12 @@ function SummaryCard({ title, value, icon, subtitle, progress, color, isKPIList,
       </div>
 
       ${progress !== undefined && !isKPIList && html`
-        <div className="mt-8 pt-8 border-t border-slate-50">
-           <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+        <div className="mt-8 pt-8 border-t border-slate-50 flex items-center gap-4">
+           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
              <div className=${`h-full rounded-full bg-gradient-to-r ${themes[color]} transition-all duration-1000 shadow-sm`} style=${{ width: `${Math.min(progress, 100)}%` }} />
+           </div>
+           <div className="px-3 py-1 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-widest whitespace-nowrap">
+              ${progress.toFixed(0)}% Done
            </div>
         </div>
       `}
