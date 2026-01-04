@@ -26,7 +26,6 @@ const formatPercent = (val) => `${val.toFixed(1)}%`;
 const shortenBranchName = (name) => {
   if (name.includes('Al-Noor Mall Madinah')) return 'Noor Mall';
   if (name.includes('Al-Jouf Center')) return 'Jouf';
-  // Standard split for others like "17-Arar Othaim Mall" -> "Arar Othaim Mall"
   const parts = name.split('-');
   return parts[1] ? parts[1].trim() : name;
 };
@@ -386,8 +385,8 @@ export default function App() {
           </div>
         </section>
         
-        <footer className="mt-12 text-center pb-6 opacity-30">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em]">© 2025 Area Intelligence Dashboard | Private Executive Access</p>
+        <footer className="mt-12 text-center pb-6 opacity-70">
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">© 2025 Khaleel Area Report | Copy right Khaleel Alsani</p>
         </footer>
       </main>
     </div>
