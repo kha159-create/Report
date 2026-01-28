@@ -2,20 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import { 
   TrendingUp, 
+  TrendingDown, 
   Users, 
-  Target, 
+  Zap, 
   BarChart3, 
-  Calendar,
-  Table as TableIcon,
-  Download,
-  AlertCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Store,
-  Printer,
-  ChevronRight,
-  MousePointer2,
-  Wallet
+  Calendar, 
+  LayoutList, 
+  Printer, 
+  ChevronRight 
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -24,10 +18,11 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer
+  Legend, 
+  ResponsiveContainer 
 } from 'recharts';
 import { MONTHS, DASHBOARD_DATA } from './constants';
-import { MonthKey, StoreComparison, ComparisonMetric, MonthlyData, StoreMetrics } from './types';
+import { MonthKey } from './types';
 
 // Formatting helpers
 const formatSAR = (val: number) => 
@@ -44,535 +39,414 @@ const formatCompactNumber = (val: number) => {
 
 const formatPercent = (val: number) => `${val.toFixed(1)}%`;
 
+// Shorten branch names for UI clarity
+const shortenBranchName = (name: string) => {
+  if (name.includes('Al-Noor Mall Madinah')) return 'Noor Mall';
+  if (name.includes('Al-Jouf Center')) return 'Jouf';
+  const parts = name.split('-');
+  return parts[1] ? parts[1].trim() : name;
+};
+
+// Pulse Indicator for YOY comparison
+const PulseIndicator = ({ current, previous, prevValueFormatted = "" }: { current: number, previous: number, prevValueFormatted?: string }) => {
+  if (!previous || previous === 0) return null;
+  const pctChange = ((current - previous) / previous) * 100;
+  const isPos = pctChange >= 0;
+  
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black tracking-tight ${isPos ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+        {isPos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        {Math.abs(pctChange).toFixed(1)}%
+      </div>
+      {prevValueFormatted && (
+        <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap uppercase tracking-tighter">
+          2024: {prevValueFormatted}
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Summary Card Component
+const SummaryCard = ({ title, value, icon, subtitle, progress, color, pulse }: any) => {
+  const themes: any = {
+    orange: 'from-orange-500 to-orange-600 shadow-orange-500/10',
+    emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/10',
+    indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/10'
+  };
+  
+  return (
+    <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-orange-200 transition-soft">
+      <div>
+        <div className="flex justify-between items-start mb-6">
+          <div className={`p-3.5 rounded-2xl text-white bg-gradient-to-br shadow-lg ${themes[color]}`}>{icon}</div>
+          {pulse}
+        </div>
+        <div className="space-y-2">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none">{title}</span>
+          <div>
+            <h4 className="text-2xl font-black text-slate-900 tracking-tight italic leading-tight">{value}</h4>
+            {subtitle && <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2 opacity-60 leading-none">{subtitle}</p>}
+          </div>
+        </div>
+      </div>
+      {progress !== undefined && (
+        <div className="mt-6 pt-6 border-t border-slate-50">
+           <div className="flex items-center gap-4">
+              <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner relative">
+                <div className={`h-full rounded-full bg-gradient-to-r ${themes[color]} transition-soft`} style={{ width: `${Math.min(progress, 100)}%` }} />
+              </div>
+              <div className="px-3 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 italic whitespace-nowrap uppercase tracking-widest leading-none">
+                {progress.toFixed(0)}% Achieved
+              </div>
+           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function App() {
   const [selectedMonth, setSelectedMonth] = useState<MonthKey>('All');
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null); 
   const [chartMetric, setChartMetric] = useState<'sales' | 'visitors' | 'target'>('sales');
 
-  const activeData = useMemo((): MonthlyData => {
-    if (selectedMonth !== 'All') {
-      return DASHBOARD_DATA[selectedMonth];
-    }
+  const branchNames = useMemo(() => {
+    const names = new Set<string>();
+    Object.values(DASHBOARD_DATA).forEach(m => m.stores.forEach(s => names.add(s.name)));
+    return Array.from(names).sort();
+  }, []);
 
-    const allMonths = Object.keys(DASHBOARD_DATA) as Exclude<MonthKey, 'All'>[];
-    const yearlyStores: Record<string, StoreMetrics> = {};
+  const viewData = useMemo(() => {
+    const allMonths = selectedMonth === 'All' ? (Object.keys(DASHBOARD_DATA) as (Exclude<MonthKey, 'All'>)[]) : [selectedMonth as Exclude<MonthKey, 'All'>];
     
-    let totalSales = 0;
-    let totalSalesLY = 0;
-    let areaTarget = 0;
+    let totalSales = 0, totalSalesLY = 0, totalTarget = 0, totalVisitors = 0, totalVisitorsLY = 0, totalTransactions = 0, totalTransactionsLY = 0;
 
-    allMonths.forEach(mKey => {
-      const monthData = DASHBOARD_DATA[mKey];
-      totalSales += monthData.totalSales;
-      totalSalesLY += monthData.totalSalesLY;
-      areaTarget += monthData.areaTarget;
+    const monthlyTrends = allMonths.map(mKey => {
+      const mData = DASHBOARD_DATA[mKey];
+      const stores = selectedBranch ? mData.stores.filter(s => s.name === selectedBranch) : mData.stores;
+      
+      const sales = stores.reduce((acc, s) => acc + s.sales, 0);
+      const salesLY = stores.reduce((acc, s) => acc + s.salesLY, 0);
+      const target = selectedBranch ? stores.reduce((acc, s) => acc + s.salesTarget, 0) : mData.areaTarget;
+      const visitors = stores.reduce((acc, s) => acc + s.visitors, 0);
+      const visitorsLY = stores.reduce((acc, s) => acc + s.visitorsLY, 0);
+      const transactions = stores.reduce((acc, s) => acc + s.transactions, 0);
+      const transactionsLY = stores.reduce((acc, s) => acc + s.transactionsLY, 0);
 
-      monthData.stores.forEach(s => {
-        if (!yearlyStores[s.name]) {
-          yearlyStores[s.name] = { ...s };
-        } else {
-          const existing = yearlyStores[s.name];
-          existing.sales += s.sales;
-          existing.salesLY += s.salesLY;
-          existing.salesTarget += s.salesTarget;
-          existing.visitors += s.visitors;
-          existing.visitorsLY += s.visitorsLY;
-          existing.transactions += s.transactions;
-          existing.transactionsLY += s.transactionsLY;
-        }
-      });
+      totalSales += sales;
+      totalSalesLY += salesLY;
+      totalTarget += target;
+      totalVisitors += visitors;
+      totalVisitorsLY += visitorsLY;
+      totalTransactions += transactions;
+      totalTransactionsLY += transactionsLY;
+
+      let trendVal = 0, prevVal = 0;
+      if (chartMetric === 'sales') { trendVal = sales; prevVal = salesLY; }
+      else if (chartMetric === 'visitors') { trendVal = visitors; prevVal = visitorsLY; }
+      else if (chartMetric === 'target') { trendVal = sales; prevVal = target; }
+
+      return {
+        name: MONTHS.find(m => m.key === mKey)?.label.substring(0, 3) || mKey,
+        current: trendVal,
+        previous: prevVal
+      };
     });
 
-    const stores = Object.values(yearlyStores).map(s => ({
-      ...s,
-      achievement: s.salesTarget > 0 ? (s.sales / s.salesTarget) * 100 : 0,
-      atv: s.transactions > 0 ? s.sales / s.transactions : 0,
-      atvLY: s.transactionsLY > 0 ? s.salesLY / s.transactionsLY : 0,
-      conversionRate: s.visitors > 0 ? (s.transactions / s.visitors) * 100 : 0,
-      conversionRateLY: s.visitorsLY > 0 ? (s.transactionsLY / s.visitorsLY) * 100 : 0,
-      salesPerVisitor: s.visitors > 0 ? s.sales / s.visitors : 0,
-      salesPerVisitorLY: s.visitorsLY > 0 ? s.salesLY / s.visitorsLY : 0,
-    }));
-
     return {
-      month: 'Yearly Total',
-      totalSales,
-      totalSalesLY,
-      areaTarget,
-      stores
+      totalSales, totalSalesLY, totalTarget, totalVisitors, totalVisitorsLY,
+      achievement: totalTarget > 0 ? (totalSales / totalTarget) * 100 : 0,
+      atv: totalTransactions > 0 ? totalSales / totalTransactions : 0,
+      atvLY: totalTransactionsLY > 0 ? totalSalesLY / totalTransactionsLY : 0,
+      conv: totalVisitors > 0 ? (totalTransactions / totalVisitors) * 100 : 0,
+      convLY: totalVisitorsLY > 0 ? (totalTransactionsLY / totalVisitorsLY) * 100 : 0,
+      spv: totalVisitors > 0 ? totalSales / totalVisitors : 0,
+      spvLY: totalVisitorsLY > 0 ? totalSalesLY / totalVisitorsLY : 0,
+      trends: monthlyTrends
     };
-  }, [selectedMonth]);
-  
-  const comparisonData = useMemo((): StoreComparison[] => {
-    return activeData.stores.map(currentStore => {
-      const calcMetric = (curr: number, prev: number = 0): ComparisonMetric => ({
+  }, [selectedMonth, selectedBranch, chartMetric]);
+
+  const matrixEntities = useMemo(() => {
+    const allMonths = selectedMonth === 'All' ? (Object.keys(DASHBOARD_DATA) as (Exclude<MonthKey, 'All'>)[]) : [selectedMonth as Exclude<MonthKey, 'All'>];
+    const targetBranches = selectedBranch ? [selectedBranch] : branchNames;
+
+    return targetBranches.map(name => {
+      let sales = 0, salesLY = 0, visitors = 0, visitorsLY = 0, trans = 0, transLY = 0;
+      allMonths.forEach(mKey => {
+        const store = DASHBOARD_DATA[mKey].stores.find(s => s.name === name);
+        if (store) {
+          sales += store.sales; salesLY += store.salesLY;
+          visitors += store.visitors; visitorsLY += store.visitorsLY;
+          trans += store.transactions; transLY += store.transactionsLY;
+        }
+      });
+      
+      const calcRow = (curr: number, prev: number) => ({
         current: curr,
         previous: prev,
-        diff: curr - prev,
-        pctChange: prev !== 0 ? ((curr - prev) / prev) * 100 : 0
+        delta: curr - prev,
+        growth: prev !== 0 ? ((curr - prev) / prev) * 100 : 0
       });
 
       return {
-        name: currentStore.name,
-        metrics: {
-          sales: calcMetric(currentStore.sales, currentStore.salesLY),
-          visitors: calcMetric(currentStore.visitors, currentStore.visitorsLY),
-          atv: calcMetric(currentStore.atv, currentStore.atvLY),
-          transactions: calcMetric(currentStore.transactions, currentStore.transactionsLY),
-          conversionRate: calcMetric(currentStore.conversionRate, currentStore.conversionRateLY),
-          salesPerVisitor: calcMetric(currentStore.salesPerVisitor, currentStore.salesPerVisitorLY),
-        }
+        name,
+        rows: [
+          { id: 'sales', label: 'Sales', ...calcRow(sales, salesLY), isCurrency: true },
+          { id: 'traffic', label: 'Traffic', ...calcRow(visitors, visitorsLY), isCurrency: false },
+          { id: 'atv', label: 'ATV', ...calcRow(trans > 0 ? sales / trans : 0, transLY > 0 ? salesLY / transLY : 0), isCurrency: true },
+          { id: 'conversion', label: 'Conversion', ...calcRow(visitors > 0 ? (trans / visitors) * 100 : 0, visitorsLY > 0 ? (transLY / visitorsLY) * 100 : 0), isPercent: true },
+          { id: 'spv', label: 'SPV', ...calcRow(visitors > 0 ? sales / visitors : 0, visitorsLY > 0 ? salesLY / visitorsLY : 0), isCurrency: true }
+        ]
       };
     });
-  }, [activeData]);
-
-  const yearlyComparisonChartData = useMemo(() => {
-    return MONTHS.map(m => {
-      const monthData = DASHBOARD_DATA[m.key as Exclude<MonthKey, 'All'>];
-      if (chartMetric === 'sales') {
-        return {
-          name: m.label,
-          current: monthData.totalSales,
-          previous: monthData.totalSalesLY,
-        };
-      } else if (chartMetric === 'visitors') {
-        const currentVisitors = monthData.stores.reduce((acc, s) => acc + s.visitors, 0);
-        const previousVisitors = monthData.stores.reduce((acc, s) => acc + s.visitorsLY, 0);
-        return {
-          name: m.label,
-          current: currentVisitors,
-          previous: previousVisitors,
-        };
-      } else {
-        const currentSales = monthData.totalSales;
-        const targetSales = monthData.areaTarget;
-        return {
-          name: m.label,
-          current: currentSales,
-          previous: targetSales,
-        };
-      }
-    });
-  }, [chartMetric]);
-
-  const totalSummary = useMemo(() => {
-    const sales = activeData.stores.reduce((acc, s) => acc + s.sales, 0);
-    const target = activeData.stores.reduce((acc, s) => acc + s.salesTarget, 0);
-    const visitors = activeData.stores.reduce((acc, s) => acc + s.visitors, 0);
-    const achievement = target > 0 ? (sales / target) * 100 : 0;
-    return { sales, target, visitors, achievement };
-  }, [activeData]);
-
-  const exportToCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Store,Period,Metric,Current (2025),Previous (2024),Difference,Change%\n";
-    comparisonData.forEach(store => {
-      (Object.entries(store.metrics) as [string, ComparisonMetric][]).forEach(([key, m]) => {
-        csvContent += `${store.name},${selectedMonth === 'All' ? 'Full Year' : selectedMonth},${key},${m.current},${m.previous},${m.diff},${m.pctChange.toFixed(2)}%\n`;
-      });
-    });
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Store_Performance_${selectedMonth}_2025.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
+  }, [selectedMonth, selectedBranch, branchNames]);
 
   return (
-    <div className="min-h-screen pb-12 bg-[#FAFAFA] font-['Inter']">
+    <div className="min-h-screen pb-12 bg-[#F8FAFC] font-['Inter'] text-slate-900 overflow-x-hidden text-sm">
       <style>{`
+        .magic-shadow { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06); }
+        .transition-soft { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         @media print {
-          @page { size: A4; margin: 15mm 10mm; }
-          body { background: white !important; font-size: 10pt; -webkit-print-color-adjust: exact !important; }
           .no-print { display: none !important; }
-          .print-full-width { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-          .card-break { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm !important; box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
-          .grid-3 { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; }
-          .grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 15px !important; }
+          .card-break { break-inside: avoid; border: 1px solid #e2e8f0 !important; }
+          body { background: white !important; font-size: 11px; }
         }
       `}</style>
 
-      {/* Navigation Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg shadow-orange-500/20">
-                <BarChart3 className="text-white w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-lg font-extrabold text-slate-900 leading-none tracking-tight">Retail Intel</h1>
-                <p className="text-[10px] text-orange-500 font-black uppercase tracking-[0.2em] mt-1">2025 Analytics Engine</p>
-              </div>
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 no-print shadow-sm h-16">
+        <div className="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-500 p-2 rounded-lg shadow-md">
+              <BarChart3 className="text-white w-5 h-5" />
             </div>
-            
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={handlePrint}
-                className="group flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
-              >
-                <Printer className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                Export to PDF
-              </button>
-              <button 
-                onClick={exportToCSV}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95"
-              >
-                <Download className="w-4 h-4" />
-                CSV
-              </button>
+            <div>
+              <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">Khaleel Insights</h1>
+              <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest mt-1">2025 Area Report</p>
             </div>
           </div>
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-soft flex items-center gap-2 text-[11px] font-black uppercase tracking-wider">
+            <Printer className="w-4 h-4" />
+            Print Analysis
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print-full-width">
-        {/* Filters and Context */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 flex flex-wrap gap-8 items-center justify-between no-print">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Select Report Period</label>
-            <div className="relative group">
-              <select 
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value as MonthKey)}
-                className="appearance-none bg-slate-50 border border-slate-200 rounded-xl py-3 pl-4 pr-12 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 outline-none transition-all text-sm font-bold text-slate-700 w-72"
-              >
-                <option value="All">Full Year 2025 Overview</option>
-                {MONTHS.map(m => (
-                  <option key={m.key} value={m.key}>{m.label} 2025</option>
-                ))}
-              </select>
-              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none group-focus-within:text-orange-500" />
-            </div>
+      <main className="max-w-6xl mx-auto px-6 py-10 print-full">
+        
+        {/* SECTION 1: Branch Selector Grid */}
+        <div className="mb-8 no-print">
+          <div className="flex items-center gap-3 mb-4 px-1">
+            <div className="h-4 w-1 bg-orange-500 rounded-full" />
+            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select Branch Focus</h2>
           </div>
-
-          <div className="flex items-center gap-3 bg-orange-50 px-5 py-3 rounded-2xl border border-orange-100 text-orange-700 text-xs font-bold">
-            <div className="p-2 bg-orange-500 rounded-lg shadow-sm">
-              <AlertCircle className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-slate-400 font-medium uppercase text-[9px] tracking-tighter">Reporting Active</p>
-              <p className="text-sm">Period: {selectedMonth === 'All' ? '2025 Total' : selectedMonth}</p>
-            </div>
+          <div className="grid gap-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+            <button 
+              onClick={() => setSelectedBranch(null)} 
+              className={`flex flex-col p-4 rounded-2xl border transition-soft text-left relative min-h-[90px] ${selectedBranch === null ? 'bg-[#0f172a] border-[#0f172a] shadow-xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-sm'}`}
+            >
+              <span className="text-[11px] font-black uppercase tracking-tight leading-tight mb-2 whitespace-normal break-words">Area Aggregate</span>
+              <span className="text-[9px] font-bold opacity-40 mt-auto uppercase tracking-wider">Total Portfolio</span>
+            </button>
+            {branchNames.map(name => {
+              const displayShort = shortenBranchName(name);
+              return (
+                <button 
+                  key={name} 
+                  onClick={() => setSelectedBranch(name)} 
+                  className={`flex flex-col p-4 rounded-2xl border transition-soft text-left relative min-h-[90px] ${selectedBranch === name ? 'bg-[#0f172a] border-[#0f172a] shadow-xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-sm'}`}
+                >
+                  <span className="text-[11px] font-black uppercase tracking-tight leading-snug whitespace-normal break-words block w-full mb-2">{displayShort}</span>
+                  <span className="text-[9px] font-bold opacity-40 mt-auto uppercase tracking-wider">Branch Detail</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Global KPIs */}
-        <section className="mb-8">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-6 w-1.5 bg-orange-500 rounded-full" />
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Global Executive KPIs</h2>
+        {/* SECTION 2: Timeline selection */}
+        <div className="mb-8 no-print flex items-center justify-between bg-white px-8 py-4 rounded-2xl border border-slate-200/60 magic-shadow">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none">Fiscal Perspective</h3>
+              <p className="text-sm font-black text-slate-700 mt-2 uppercase tracking-tight">Report Cycle Analysis</p>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 grid-3">
-            <SummaryCard 
-              title="Global Gross Sales" 
-              value={formatSAR(totalSummary.sales)} 
-              icon={<TrendingUp className="w-5 h-5" />}
-              subtitle={`Annual Target: ${formatSAR(totalSummary.target)}`}
-              color="orange"
-            />
-            <SummaryCard 
-              title="Target Achievement" 
-              value={formatPercent(totalSummary.achievement)} 
-              icon={<Target className="w-5 h-5" />}
-              progress={totalSummary.achievement}
-              color="emerald"
-            />
-            <SummaryCard 
-              title="Customer Footfall" 
-              value={formatNumber(totalSummary.visitors)} 
-              icon={<Users className="w-5 h-5" />}
-              color="indigo"
-            />
+          <div className="flex items-center gap-4">
+            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Selected Period:</span>
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value as MonthKey)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-2.5 outline-none text-xs font-black text-slate-800 cursor-pointer shadow-sm focus:ring-4 focus:ring-orange-500/10 transition-soft min-w-[200px]"
+            >
+              <option value="All">Full Year 2025 Overview</option>
+              {MONTHS.map(m => <option key={m.key} value={m.key}>{m.label} 2025</option>)}
+            </select>
           </div>
+        </div>
+
+        {/* SECTION 3: Summary Cards */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <SummaryCard 
+            title="Gross Sales" 
+            value={formatSAR(viewData.totalSales)} 
+            icon={<TrendingUp className="w-5 h-5" />} 
+            color="orange" 
+            subtitle={`Quota vs ${formatSAR(viewData.totalTarget)}`}
+            pulse={<PulseIndicator current={viewData.totalSales} previous={viewData.totalSalesLY} prevValueFormatted={formatSAR(viewData.totalSalesLY)} />}
+            progress={viewData.achievement}
+          />
+          
+          <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-indigo-200 transition-soft">
+            <div className="flex justify-between items-start mb-6">
+              <div className="p-3 rounded-2xl text-white bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg">
+                <Zap className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none">Efficiency Matrix</span>
+            </div>
+            <div className="space-y-5">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">ATV (Avg Receipt)</p>
+                  <p className="text-lg font-black text-slate-900 italic mt-2 tracking-tighter">{formatSAR(viewData.atv)}</p>
+                </div>
+                <PulseIndicator current={viewData.atv} previous={viewData.atvLY} />
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Store Conversion</p>
+                  <p className="text-lg font-black text-slate-900 italic mt-2 tracking-tighter">{formatPercent(viewData.conv)}</p>
+                </div>
+                <PulseIndicator current={viewData.conv} previous={viewData.convLY} />
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Per Visitor Value (SPV)</p>
+                  <p className="text-lg font-black text-orange-600 italic mt-2 tracking-tighter">{formatSAR(viewData.spv)}</p>
+                </div>
+                <PulseIndicator current={viewData.spv} previous={viewData.spvLY} />
+              </div>
+            </div>
+          </div>
+
+          <SummaryCard 
+            title="Portfolio Traffic" 
+            value={formatNumber(viewData.totalVisitors)} 
+            icon={<Users className="w-5 h-5" />} 
+            color="indigo" 
+            subtitle={`Total Customer Engagements`}
+            pulse={<PulseIndicator current={viewData.totalVisitors} previous={viewData.totalVisitorsLY} prevValueFormatted={formatNumber(viewData.totalVisitorsLY)} />}
+          />
         </section>
 
-        {/* Comparison Trends Chart */}
-        <section className="mb-12 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm card-break">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
-            <div className="flex items-center gap-3">
-              <div className="h-6 w-1.5 bg-orange-500 rounded-full" />
-              <div>
-                <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Performance Trends</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">
-                  {chartMetric === 'target' ? '2025 Sales vs Target' : 'Comparing 2025 vs 2024'}
-                </p>
+        {/* SECTION 4: Chart */}
+        <section className="bg-white p-8 rounded-[2rem] border border-slate-200/60 mb-10 magic-shadow card-break">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-4 w-1 bg-orange-500 rounded-full" />
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Growth Trajectory</h2>
               </div>
+              <p className="text-base font-black text-slate-900 uppercase italic tracking-tight">{selectedBranch || 'Total Portfolio Analysis'}</p>
             </div>
-            
-            <div className="flex flex-wrap items-center gap-4 no-print">
-              <div className="bg-slate-100 p-1 rounded-2xl flex items-center shadow-inner">
-                {(['sales', 'visitors', 'target'] as const).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setChartMetric(m)}
-                    className={`px-5 py-2 rounded-xl text-[10px] font-black tracking-wider transition-all duration-200 ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm scale-[1.02]' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {m.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-
-              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-
-              <div className="flex items-center gap-4 px-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    {chartMetric === 'target' ? 'Actual' : '2025'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-slate-300" />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    {chartMetric === 'target' ? 'Target' : '2024'}
-                  </span>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl no-print">
+              {(['sales', 'visitors', 'target'] as const).map(m => (
+                <button 
+                  key={m} 
+                  onClick={() => setChartMetric(m)} 
+                  className={`px-5 py-2 rounded-lg text-[10px] font-black tracking-widest transition-soft ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  {m.toUpperCase()}
+                </button>
+              ))}
             </div>
           </div>
-          
-          <div className="h-[350px] w-full">
+          <div className="h-[320px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={yearlyComparisonChartData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
-                barGap={8}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 800 }}
-                  tickFormatter={formatCompactNumber}
-                />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ 
-                    borderRadius: '20px', 
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                    padding: '16px'
-                  }}
-                  formatter={(value: number, name: string) => {
-                    const isTarget = chartMetric === 'target';
-                    const label = isTarget 
-                      ? (name === 'current' ? 'Actual Sales' : 'Sales Target')
-                      : (chartMetric === 'sales' ? 'Sales' : 'Visitors');
-                    const val = (chartMetric === 'sales' || chartMetric === 'target') ? formatSAR(value) : formatNumber(value);
-                    return [val, label];
-                  }}
-                  labelStyle={{ fontWeight: 800, color: '#1e293b', marginBottom: '4px', fontSize: '13px' }}
-                />
-                <Bar dataKey="current" fill="#f97316" radius={[6, 6, 0, 0]} barSize={22} animationDuration={1000} />
-                <Bar dataKey="previous" fill="#cbd5e1" radius={[6, 6, 0, 0]} barSize={22} animationDuration={1200} />
+              <BarChart data={viewData.trends} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }} tickFormatter={formatCompactNumber} />
+                <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 15px 30px -5px rgba(0,0,0,0.1)', padding: '16px', fontSize: '11px', fontWeight: 'bold' }} />
+                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase' }} />
+                <Bar name="2025 Actual" dataKey="current" fill="#f97316" radius={[5, 5, 5, 5]} barSize={20} />
+                <Bar name="2024 Comparison" dataKey="previous" fill="#0f172a" radius={[5, 5, 5, 5]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
-        {/* Branch Performance Detail */}
-        <section className="space-y-6 mb-16">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="h-6 w-1.5 bg-slate-900 rounded-full" />
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Branch Performance Detail</h2>
+        {/* SECTION 5: Matrix Table */}
+        <section className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden magic-shadow card-break transition-soft">
+          <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-2xl bg-[#0f172a] flex items-center justify-center shadow-lg">
+                <LayoutList className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase italic leading-none">Growth Intelligence Matrix</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2">Detail YOY Assessment</p>
+              </div>
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 gap-6">
-            {activeData.stores.map((store) => (
-              <div key={store.name} className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden card-break hover:border-orange-300 transition-all duration-300">
-                {/* Branch Header */}
-                <div className="px-8 py-5 flex items-center justify-between border-b border-slate-100 bg-slate-50/30">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-orange-500/10 p-2.5 rounded-2xl">
-                      <Store className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-extrabold text-slate-900 tracking-tight">{store.name}</h3>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Branch Profile</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ACHIEVEMENT</span>
-                    <span className={`px-4 py-1.5 rounded-full text-xs font-black border ${store.achievement >= 100 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                      {formatPercent(store.achievement)}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Branch Metrics */}
-                <div className="p-8 grid grid-cols-1 md:grid-cols-4 gap-8 grid-4">
-                  <div className="space-y-3">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Total Sales</span>
-                      <p className="text-xl font-black text-slate-900">{formatSAR(store.sales)}</p>
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
-                        <span>VS Target</span>
-                        <span>{formatPercent(store.achievement)}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${store.achievement >= 100 ? 'bg-emerald-500' : 'bg-orange-500'} transition-all duration-1000`} 
-                          style={{ width: `${Math.min(store.achievement, 100)}%` }} 
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Visitors</span>
-                    <p className="text-xl font-black text-slate-900">{formatNumber(store.visitors)}</p>
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">Conv: {formatPercent(store.conversionRate)}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">ATV</span>
-                    <p className="text-xl font-black text-slate-900">{formatSAR(store.atv)}</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Avg Transaction</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-orange-500 uppercase tracking-wider">SPV</span>
-                    <p className="text-xl font-black text-orange-600">{formatSAR(store.salesPerVisitor)}</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Sales Per Visitor</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Growth Analysis Table */}
-        <section className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden card-break">
-          <div className="px-10 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
-                <TableIcon className="w-5 h-5 text-white" />
-              </div>
-              YoY Growth Analysis (2025 vs 2024)
-            </h3>
-          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-100/50 text-slate-500 font-black uppercase tracking-widest border-b border-slate-200">
-                  <th className="px-10 py-5">Branch / KPIs</th>
-                  <th className="px-4 py-5 text-center">2025 Value</th>
-                  <th className="px-4 py-5 text-center">2024 Value</th>
-                  <th className="px-4 py-5 text-center">Δ Absolute</th>
-                  <th className="px-10 py-5 text-center">Δ Growth %</th>
+                <tr className="border-b border-slate-100 bg-[#FAFBFC]">
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">KPI Dimension</th>
+                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">2025 Current</th>
+                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">2024 Previous</th>
+                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Variance Δ</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Growth %</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {comparisonData.map((store) => (
-                  <React.Fragment key={store.name}>
-                    <tr className="bg-slate-50/60">
-                      <td colSpan={5} className="px-10 py-4 font-black text-orange-600 border-y border-slate-200/50 bg-orange-50/40 uppercase tracking-[0.1em] text-[11px]">
-                        {store.name}
+              <tbody>
+                {matrixEntities.map(entity => (
+                  <React.Fragment key={entity.name}>
+                    <tr className="bg-white border-b border-slate-50/50">
+                      <td colSpan={5} className="px-8 py-4 text-[11px] font-black text-orange-600 uppercase tracking-[0.2em] italic bg-orange-50/10 border-l-4 border-l-orange-500">
+                        {entity.name}
                       </td>
                     </tr>
-                    <ComparisonRow label="Sales" metric={store.metrics.sales} isCurrency />
-                    <ComparisonRow label="Visitors" metric={store.metrics.visitors} />
-                    <ComparisonRow label="ATV" metric={store.metrics.atv} isCurrency />
-                    <ComparisonRow label="SPV" metric={store.metrics.salesPerVisitor} isCurrency />
+                    {entity.rows.map(row => {
+                      const formatVal = (v: number) => row.isCurrency ? formatSAR(v) : (row.isPercent ? formatPercent(v) : formatNumber(v));
+                      const isPositive = row.growth >= 0;
+                      return (
+                        <tr key={row.id} className="group hover:bg-slate-50 transition-soft border-b border-slate-50/30 last:border-slate-100">
+                          <td className="px-8 py-4 flex items-center gap-3">
+                             <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-orange-500" />
+                             <span className="text-[12px] font-bold text-slate-600 group-hover:text-slate-900 transition-soft tracking-tight">{row.label}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center text-[13px] font-black text-slate-900 italic tracking-tight">{formatVal(row.current)}</td>
+                          <td className="px-4 py-4 text-center text-[12px] font-medium italic text-slate-600">{formatVal(row.previous)}</td>
+                          <td className={`px-4 py-4 text-center text-[13px] font-black ${row.delta >= 0 ? 'text-emerald-500' : 'text-rose-600'}`}>
+                            {row.delta > 0 ? '+' : ''}{formatVal(row.delta)}
+                          </td>
+                          <td className="px-8 py-4 text-center">
+                             <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-black ${isPositive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+                               {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                               {Math.abs(row.growth).toFixed(1)}%
+                             </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </React.Fragment>
                 ))}
               </tbody>
             </table>
           </div>
         </section>
-
-        <footer className="mt-16 text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] hidden print:block border-t border-slate-100 pt-10">
-          © 2025 Retail Intelligence Systems | Confidential
+        
+        <footer className="mt-12 text-center pb-6 opacity-70">
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">© 2025 Khaleel Area Report | Copy right Khaleel Alsani</p>
         </footer>
       </main>
-    </div>
-  );
-}
-
-function ComparisonRow({ label, metric, isCurrency }: { label: string; metric: ComparisonMetric; isCurrency?: boolean }) {
-  const format = (val: number) => isCurrency ? formatSAR(val) : formatNumber(val);
-  const isPositive = metric.pctChange >= 0;
-  return (
-    <tr className="hover:bg-orange-50/20 transition-all group">
-      <td className="px-10 py-4 font-bold text-slate-600 flex items-center gap-3">
-        <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-orange-500 transition-colors" />
-        {label}
-      </td>
-      <td className="px-4 py-4 text-center font-extrabold text-slate-900">{format(metric.current)}</td>
-      <td className="px-4 py-4 text-center text-slate-400 font-medium italic">{format(metric.previous)}</td>
-      <td className={`px-4 py-4 text-center font-black ${metric.diff > 0 ? 'text-emerald-600' : metric.diff < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
-        {metric.diff > 0 ? '+' : ''}{format(metric.diff)}
-      </td>
-      <td className="px-10 py-4 text-center font-black">
-        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${isPositive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100'}`}>
-          {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-          {Math.abs(metric.pctChange).toFixed(1)}%
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function SummaryCard({ title, value, icon, subtitle, progress, color }: any) {
-  const colors: any = {
-    orange: { bg: 'bg-orange-500', icon: 'shadow-orange-200' },
-    emerald: { bg: 'bg-emerald-500', icon: 'shadow-emerald-200' },
-    indigo: { bg: 'bg-indigo-500', icon: 'shadow-indigo-200' },
-  };
-  
-  const theme = colors[color];
-
-  return (
-    <div className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden card-break">
-      <div className="flex justify-between items-start mb-8">
-        <div className={`p-3.5 rounded-[1.25rem] text-white shadow-lg ${theme.bg} ${theme.icon}`}>
-          {icon}
-        </div>
-        {progress !== undefined && (
-          <div className="px-4 py-1.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 tracking-wider">
-             {progress.toFixed(0)}% DONE
-          </div>
-        )}
-      </div>
-      
-      <div className="space-y-1.5">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{title}</p>
-        <h4 className="text-2xl font-black text-slate-900 tracking-tight">{value}</h4>
-        {subtitle && <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wide">{subtitle}</p>}
-      </div>
-      
-      {progress !== undefined && (
-        <div className="mt-8">
-          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest mb-2 text-slate-400">
-            <span>Progress Bar</span>
-            <span>{progress.toFixed(1)}%</span>
-          </div>
-          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div 
-              className={`h-full ${theme.bg} transition-all duration-1000 shadow-sm`} 
-              style={{ width: `${Math.min(progress, 100)}%` }} 
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
