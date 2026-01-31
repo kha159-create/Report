@@ -17,8 +17,12 @@
       #root {
         min-height: 100vh;
       }
+      .magic-shadow { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06); }
+      .transition-soft { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
       @media print {
         .no-print { display: none !important; }
+        .card-break { break-inside: avoid; border: 1px solid #e2e8f0 !important; }
+        body { background: white !important; -webkit-print-color-adjust: exact !important; }
       }
     </style>
     <script type="importmap">
@@ -27,8 +31,8 @@
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "recharts": "https://esm.sh/recharts@2.15.0?external=react,react-dom",
-    "lucide-react": "https://esm.sh/lucide-react@0.473.0?external=react",
+    "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.473.0?deps=react@19.0.0",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "htm": "https://esm.sh/htm@^3.1.1"

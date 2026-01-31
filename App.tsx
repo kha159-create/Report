@@ -54,13 +54,13 @@ const PulseIndicator = ({ current, previous, prevValueFormatted = "" }: { curren
   const isPos = pctChange >= 0;
   
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-black tracking-tight ${isPos ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
-        {isPos ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+    <div className="flex flex-col items-end gap-1.5">
+      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black tracking-tight ${isPos ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
+        {isPos ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
         {Math.abs(pctChange).toFixed(1)}%
       </div>
       {prevValueFormatted && (
-        <span className="text-[9px] text-slate-400 font-bold whitespace-nowrap uppercase tracking-tighter">
+        <span className="text-[10px] text-slate-400 font-bold whitespace-nowrap uppercase tracking-tighter">
           2024: {prevValueFormatted}
         </span>
       )}
@@ -71,33 +71,33 @@ const PulseIndicator = ({ current, previous, prevValueFormatted = "" }: { curren
 // Summary Card Component
 const SummaryCard = ({ title, value, icon, subtitle, progress, color, pulse }: any) => {
   const themes: any = {
-    orange: 'from-orange-500 to-orange-600 shadow-orange-500/10',
-    emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/10',
-    indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/10'
+    orange: 'from-orange-500 to-orange-600 shadow-orange-500/20',
+    emerald: 'from-emerald-500 to-emerald-600 shadow-emerald-500/20',
+    indigo: 'from-indigo-500 to-indigo-600 shadow-indigo-500/20'
   };
   
   return (
-    <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-orange-200 transition-soft">
+    <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-orange-200 transition-soft">
       <div>
-        <div className="flex justify-between items-start mb-6">
-          <div className={`p-3.5 rounded-2xl text-white bg-gradient-to-br shadow-lg ${themes[color]}`}>{icon}</div>
+        <div className="flex justify-between items-start mb-8">
+          <div className={`p-4 rounded-2xl text-white bg-gradient-to-br shadow-lg ${themes[color]}`}>{icon}</div>
           {pulse}
         </div>
-        <div className="space-y-2">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none">{title}</span>
+        <div className="space-y-3">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] leading-none">{title}</span>
           <div>
-            <h4 className="text-2xl font-black text-slate-900 tracking-tight italic leading-tight">{value}</h4>
-            {subtitle && <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-2 opacity-60 leading-none">{subtitle}</p>}
+            <h4 className="text-3xl font-black text-slate-900 tracking-tight italic leading-tight">{value}</h4>
+            {subtitle && <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-2 opacity-60 leading-none">{subtitle}</p>}
           </div>
         </div>
       </div>
       {progress !== undefined && (
-        <div className="mt-6 pt-6 border-t border-slate-50">
-           <div className="flex items-center gap-4">
-              <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner relative">
+        <div className="mt-8 pt-8 border-t border-slate-100">
+           <div className="flex items-center gap-5">
+              <div className="flex-1 h-3.5 bg-slate-100 rounded-full overflow-hidden shadow-inner relative">
                 <div className={`h-full rounded-full bg-gradient-to-r ${themes[color]} transition-soft`} style={{ width: `${Math.min(progress, 100)}%` }} />
               </div>
-              <div className="px-3 py-1 rounded-lg text-[10px] font-black bg-emerald-50 text-emerald-600 border border-emerald-100 italic whitespace-nowrap uppercase tracking-widest leading-none">
+              <div className="px-4 py-1.5 rounded-xl text-xs font-black bg-emerald-50 text-emerald-600 border border-emerald-100 italic whitespace-nowrap uppercase tracking-widest leading-none shadow-sm">
                 {progress.toFixed(0)}% Achieved
               </div>
            </div>
@@ -204,50 +204,40 @@ export default function App() {
   }, [selectedMonth, selectedBranch, branchNames]);
 
   return (
-    <div className="min-h-screen pb-12 bg-[#F8FAFC] font-['Inter'] text-slate-900 overflow-x-hidden text-sm">
-      <style>{`
-        .magic-shadow { box-shadow: 0 10px 30px -10px rgba(0,0,0,0.06); }
-        .transition-soft { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        @media print {
-          .no-print { display: none !important; }
-          .card-break { break-inside: avoid; border: 1px solid #e2e8f0 !important; }
-          body { background: white !important; font-size: 11px; }
-        }
-      `}</style>
-
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 no-print shadow-sm h-16">
-        <div className="max-w-6xl mx-auto px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-500 p-2 rounded-lg shadow-md">
-              <BarChart3 className="text-white w-5 h-5" />
+    <div className="min-h-screen pb-16 bg-[#F8FAFC] font-['Inter'] text-slate-900 overflow-x-hidden text-base">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 no-print shadow-sm h-20">
+        <div className="max-w-7xl mx-auto px-8 h-full flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-orange-500 p-2.5 rounded-xl shadow-lg">
+              <BarChart3 className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-sm font-black text-slate-900 tracking-tight leading-none uppercase">Khaleel Insights</h1>
-              <p className="text-[10px] text-orange-500 font-bold uppercase tracking-widest mt-1">2025 Area Report</p>
+              <h1 className="text-lg font-black text-slate-900 tracking-tight leading-none uppercase">Khaleel Insights</h1>
+              <p className="text-xs text-orange-500 font-bold uppercase tracking-widest mt-1.5">2025 Area Report</p>
             </div>
           </div>
-          <button onClick={() => window.print()} className="bg-slate-900 text-white px-5 py-2.5 rounded-xl hover:bg-slate-800 transition-soft flex items-center gap-2 text-[11px] font-black uppercase tracking-wider">
-            <Printer className="w-4 h-4" />
+          <button onClick={() => window.print()} className="bg-slate-900 text-white px-6 py-3 rounded-2xl hover:bg-slate-800 transition-soft flex items-center gap-2.5 text-xs font-black uppercase tracking-widest shadow-lg active:scale-95">
+            <Printer className="w-5 h-5" />
             Print Analysis
           </button>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-10 print-full">
+      <main className="max-w-7xl mx-auto px-8 py-12 print-full">
         
         {/* SECTION 1: Branch Selector Grid */}
-        <div className="mb-8 no-print">
-          <div className="flex items-center gap-3 mb-4 px-1">
-            <div className="h-4 w-1 bg-orange-500 rounded-full" />
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select Branch Focus</h2>
+        <div className="mb-12 no-print">
+          <div className="flex items-center gap-4 mb-6 px-1">
+            <div className="h-5 w-1.5 bg-orange-500 rounded-full" />
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em]">Branch Focus Explorer</h2>
           </div>
-          <div className="grid gap-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+          <div className="grid gap-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
             <button 
               onClick={() => setSelectedBranch(null)} 
-              className={`flex flex-col p-4 rounded-2xl border transition-soft text-left relative min-h-[90px] ${selectedBranch === null ? 'bg-[#0f172a] border-[#0f172a] shadow-xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-sm'}`}
+              className={`flex flex-col p-5 rounded-3xl border transition-soft text-left relative min-h-[110px] ${selectedBranch === null ? 'bg-[#0f172a] border-[#0f172a] shadow-2xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-md hover:shadow-lg'}`}
             >
-              <span className="text-[11px] font-black uppercase tracking-tight leading-tight mb-2 whitespace-normal break-words">Area Aggregate</span>
-              <span className="text-[9px] font-bold opacity-40 mt-auto uppercase tracking-wider">Total Portfolio</span>
+              <span className="text-xs font-black uppercase tracking-tight leading-tight mb-3 whitespace-normal break-words">Area Aggregate</span>
+              <span className="text-[10px] font-bold opacity-50 mt-auto uppercase tracking-widest">Total Portfolio</span>
             </button>
             {branchNames.map(name => {
               const displayShort = shortenBranchName(name);
@@ -255,10 +245,10 @@ export default function App() {
                 <button 
                   key={name} 
                   onClick={() => setSelectedBranch(name)} 
-                  className={`flex flex-col p-4 rounded-2xl border transition-soft text-left relative min-h-[90px] ${selectedBranch === name ? 'bg-[#0f172a] border-[#0f172a] shadow-xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-sm'}`}
+                  className={`flex flex-col p-5 rounded-3xl border transition-soft text-left relative min-h-[110px] ${selectedBranch === name ? 'bg-[#0f172a] border-[#0f172a] shadow-2xl text-white' : 'bg-white border-slate-200 hover:border-orange-300 shadow-md hover:shadow-lg'}`}
                 >
-                  <span className="text-[11px] font-black uppercase tracking-tight leading-snug whitespace-normal break-words block w-full mb-2">{displayShort}</span>
-                  <span className="text-[9px] font-bold opacity-40 mt-auto uppercase tracking-wider">Branch Detail</span>
+                  <span className="text-xs font-black uppercase tracking-tight leading-snug whitespace-normal break-words block w-full mb-3">{displayShort}</span>
+                  <span className="text-[10px] font-bold opacity-50 mt-auto uppercase tracking-widest">Branch Detail</span>
                 </button>
               );
             })}
@@ -266,67 +256,67 @@ export default function App() {
         </div>
 
         {/* SECTION 2: Timeline selection */}
-        <div className="mb-8 no-print flex items-center justify-between bg-white px-8 py-4 rounded-2xl border border-slate-200/60 magic-shadow">
-          <div className="flex items-center gap-4">
-            <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
-              <Calendar className="w-5 h-5" />
+        <div className="mb-12 no-print flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white px-10 py-6 rounded-3xl border border-slate-200/60 magic-shadow gap-6">
+          <div className="flex items-center gap-5">
+            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
+              <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none">Fiscal Perspective</h3>
-              <p className="text-sm font-black text-slate-700 mt-2 uppercase tracking-tight">Report Cycle Analysis</p>
+              <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em] leading-none">Fiscal Perspective</h3>
+              <p className="text-base font-black text-slate-700 mt-2 uppercase tracking-tight">Report Cycle Selection</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Selected Period:</span>
+          <div className="flex items-center gap-5 w-full sm:w-auto">
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest hidden md:block">Active Cycle:</span>
             <select 
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value as MonthKey)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-5 py-2.5 outline-none text-xs font-black text-slate-800 cursor-pointer shadow-sm focus:ring-4 focus:ring-orange-500/10 transition-soft min-w-[200px]"
+              className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-3 outline-none text-sm font-black text-slate-800 cursor-pointer shadow-inner focus:ring-8 focus:ring-orange-500/10 transition-soft w-full sm:min-w-[280px]"
             >
-              <option value="All">Full Year 2025 Overview</option>
+              <option value="All">Full Year 2025 Comprehensive</option>
               {MONTHS.map(m => <option key={m.key} value={m.key}>{m.label} 2025</option>)}
             </select>
           </div>
         </div>
 
         {/* SECTION 3: Summary Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           <SummaryCard 
-            title="Gross Sales" 
+            title="Gross Area Sales" 
             value={formatSAR(viewData.totalSales)} 
-            icon={<TrendingUp className="w-5 h-5" />} 
+            icon={<TrendingUp className="w-6 h-6" />} 
             color="orange" 
-            subtitle={`Quota vs ${formatSAR(viewData.totalTarget)}`}
+            subtitle={`Target Alignment vs ${formatSAR(viewData.totalTarget)}`}
             pulse={<PulseIndicator current={viewData.totalSales} previous={viewData.totalSalesLY} prevValueFormatted={formatSAR(viewData.totalSalesLY)} />}
             progress={viewData.achievement}
           />
           
-          <div className="bg-white rounded-[2rem] p-8 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-indigo-200 transition-soft">
-            <div className="flex justify-between items-start mb-6">
-              <div className="p-3 rounded-2xl text-white bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg">
-                <Zap className="w-5 h-5" />
+          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200/60 magic-shadow card-break flex flex-col justify-between hover:border-indigo-200 transition-soft">
+            <div className="flex justify-between items-start mb-8">
+              <div className="p-4 rounded-2xl text-white bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg">
+                <Zap className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none">Efficiency Matrix</span>
+              <span className="text-xs font-black text-slate-300 uppercase tracking-[0.25em] leading-none">Efficiency Matrix</span>
             </div>
-            <div className="space-y-5">
-              <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-4">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">ATV (Avg Receipt)</p>
-                  <p className="text-lg font-black text-slate-900 italic mt-2 tracking-tighter">{formatSAR(viewData.atv)}</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">ATV (Avg Ticket)</p>
+                  <p className="text-xl font-black text-slate-900 italic mt-2.5 tracking-tighter">{formatSAR(viewData.atv)}</p>
                 </div>
                 <PulseIndicator current={viewData.atv} previous={viewData.atvLY} />
               </div>
-              <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+              <div className="flex justify-between items-center border-b border-slate-50 pb-4">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Store Conversion</p>
-                  <p className="text-lg font-black text-slate-900 italic mt-2 tracking-tighter">{formatPercent(viewData.conv)}</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Walk-in Conversion</p>
+                  <p className="text-xl font-black text-slate-900 italic mt-2.5 tracking-tighter">{formatPercent(viewData.conv)}</p>
                 </div>
                 <PulseIndicator current={viewData.conv} previous={viewData.convLY} />
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Per Visitor Value (SPV)</p>
-                  <p className="text-lg font-black text-orange-600 italic mt-2 tracking-tighter">{formatSAR(viewData.spv)}</p>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none">Customer Lifetime Value (SPV)</p>
+                  <p className="text-xl font-black text-orange-600 italic mt-2.5 tracking-tighter">{formatSAR(viewData.spv)}</p>
                 </div>
                 <PulseIndicator current={viewData.spv} previous={viewData.spvLY} />
               </div>
@@ -336,60 +326,63 @@ export default function App() {
           <SummaryCard 
             title="Portfolio Traffic" 
             value={formatNumber(viewData.totalVisitors)} 
-            icon={<Users className="w-5 h-5" />} 
+            icon={<Users className="w-6 h-6" />} 
             color="indigo" 
-            subtitle={`Total Customer Engagements`}
+            subtitle={`Consolidated Customer Footprint`}
             pulse={<PulseIndicator current={viewData.totalVisitors} previous={viewData.totalVisitorsLY} prevValueFormatted={formatNumber(viewData.totalVisitorsLY)} />}
           />
         </section>
 
         {/* SECTION 4: Chart */}
-        <section className="bg-white p-8 rounded-[2rem] border border-slate-200/60 mb-10 magic-shadow card-break">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+        <section className="bg-white p-10 rounded-[2.5rem] border border-slate-200/60 mb-12 magic-shadow card-break">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <div className="h-4 w-1 bg-orange-500 rounded-full" />
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Growth Trajectory</h2>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-5 w-1.5 bg-orange-500 rounded-full" />
+                <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.25em]">Trajectory Forecast</h2>
               </div>
-              <p className="text-base font-black text-slate-900 uppercase italic tracking-tight">{selectedBranch || 'Total Portfolio Analysis'}</p>
+              <p className="text-lg font-black text-slate-900 uppercase italic tracking-tight">{selectedBranch || 'Area Performance Trajectory'}</p>
             </div>
-            <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl no-print">
+            <div className="flex items-center gap-3 bg-slate-100 p-1.5 rounded-2xl no-print shadow-inner">
               {(['sales', 'visitors', 'target'] as const).map(m => (
                 <button 
                   key={m} 
                   onClick={() => setChartMetric(m)} 
-                  className={`px-5 py-2 rounded-lg text-[10px] font-black tracking-widest transition-soft ${chartMetric === m ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-black tracking-widest transition-soft ${chartMetric === m ? 'bg-white text-orange-600 shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
                 >
                   {m.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
-          <div className="h-[320px] w-full">
+          <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={viewData.trends} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }} tickFormatter={formatCompactNumber} />
-                <Tooltip cursor={{ fill: '#F8FAFC' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 15px 30px -5px rgba(0,0,0,0.1)', padding: '16px', fontSize: '11px', fontWeight: 'bold' }} />
-                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase' }} />
-                <Bar name="2025 Actual" dataKey="current" fill="#f97316" radius={[5, 5, 5, 5]} barSize={20} />
-                <Bar name="2024 Comparison" dataKey="previous" fill="#0f172a" radius={[5, 5, 5, 5]} barSize={20} />
+              <BarChart data={viewData.trends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="5 5" vertical={false} stroke="#F1F5F9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 800 }} dy={15} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 800 }} tickFormatter={formatCompactNumber} />
+                <Tooltip 
+                  cursor={{ fill: '#F8FAFC' }} 
+                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', padding: '24px', fontSize: '14px', fontWeight: 'bold' }} 
+                />
+                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '30px', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                <Bar name="2025 Actual" dataKey="current" fill="#f97316" radius={[6, 6, 6, 6]} barSize={28} />
+                <Bar name="2024 Base" dataKey="previous" fill="#0f172a" radius={[6, 6, 6, 6]} barSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
 
         {/* SECTION 5: Matrix Table */}
-        <section className="bg-white rounded-[2rem] border border-slate-200/60 overflow-hidden magic-shadow card-break transition-soft">
-          <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-[#0f172a] flex items-center justify-center shadow-lg">
-                <LayoutList className="w-5 h-5 text-white" />
+        <section className="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden magic-shadow card-break transition-soft">
+          <div className="px-10 py-7 border-b border-slate-100 flex items-center justify-between bg-slate-50/40">
+            <div className="flex items-center gap-5">
+              <div className="w-12 h-12 rounded-2xl bg-[#0f172a] flex items-center justify-center shadow-xl">
+                <LayoutList className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase italic leading-none">Growth Intelligence Matrix</h3>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2">Detail YOY Assessment</p>
+                <h3 className="text-base font-black text-slate-900 tracking-tight uppercase italic leading-none">Growth Intelligence Matrix</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-[0.25em] mt-2.5">Comprehensive YOY Delta Analysis</p>
               </div>
             </div>
           </div>
@@ -398,18 +391,18 @@ export default function App() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-100 bg-[#FAFBFC]">
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">KPI Dimension</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">2025 Current</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">2024 Previous</th>
-                  <th className="px-4 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Variance Δ</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] text-center">Growth %</th>
+                  <th className="px-10 py-7 text-xs font-black text-slate-500 uppercase tracking-[0.25em]">KPI Dimension</th>
+                  <th className="px-6 py-7 text-xs font-black text-slate-500 uppercase tracking-[0.25em] text-center">2025 Current</th>
+                  <th className="px-6 py-7 text-xs font-black text-slate-500 uppercase tracking-[0.25em] text-center">2024 Base</th>
+                  <th className="px-6 py-7 text-xs font-black text-slate-500 uppercase tracking-[0.25em] text-center">Variance Δ</th>
+                  <th className="px-10 py-7 text-xs font-black text-slate-500 uppercase tracking-[0.25em] text-center">Variance %</th>
                 </tr>
               </thead>
               <tbody>
                 {matrixEntities.map(entity => (
                   <React.Fragment key={entity.name}>
                     <tr className="bg-white border-b border-slate-50/50">
-                      <td colSpan={5} className="px-8 py-4 text-[11px] font-black text-orange-600 uppercase tracking-[0.2em] italic bg-orange-50/10 border-l-4 border-l-orange-500">
+                      <td colSpan={5} className="px-10 py-5 text-sm font-black text-orange-600 uppercase tracking-[0.25em] italic bg-orange-50/10 border-l-[6px] border-l-orange-500">
                         {entity.name}
                       </td>
                     </tr>
@@ -418,18 +411,18 @@ export default function App() {
                       const isPositive = row.growth >= 0;
                       return (
                         <tr key={row.id} className="group hover:bg-slate-50 transition-soft border-b border-slate-50/30 last:border-slate-100">
-                          <td className="px-8 py-4 flex items-center gap-3">
-                             <ChevronRight className="w-4 h-4 text-slate-200 group-hover:text-orange-500" />
-                             <span className="text-[12px] font-bold text-slate-600 group-hover:text-slate-900 transition-soft tracking-tight">{row.label}</span>
+                          <td className="px-10 py-5 flex items-center gap-4">
+                             <ChevronRight className="w-5 h-5 text-slate-200 group-hover:text-orange-500" />
+                             <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-soft tracking-tight">{row.label}</span>
                           </td>
-                          <td className="px-4 py-4 text-center text-[13px] font-black text-slate-900 italic tracking-tight">{formatVal(row.current)}</td>
-                          <td className="px-4 py-4 text-center text-[12px] font-medium italic text-slate-600">{formatVal(row.previous)}</td>
-                          <td className={`px-4 py-4 text-center text-[13px] font-black ${row.delta >= 0 ? 'text-emerald-500' : 'text-rose-600'}`}>
+                          <td className="px-6 py-5 text-center text-base font-black text-slate-900 italic tracking-tight">{formatVal(row.current)}</td>
+                          <td className="px-6 py-5 text-center text-sm font-medium italic text-slate-600">{formatVal(row.previous)}</td>
+                          <td className={`px-6 py-5 text-center text-base font-black ${row.delta >= 0 ? 'text-emerald-500' : 'text-rose-600'}`}>
                             {row.delta > 0 ? '+' : ''}{formatVal(row.delta)}
                           </td>
-                          <td className="px-8 py-4 text-center">
-                             <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-black ${isPositive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}>
-                               {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                          <td className="px-10 py-5 text-center">
+                             <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-xl text-xs font-black ${isPositive ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm' : 'bg-rose-50 text-rose-600 border border-rose-100 shadow-sm'}`}>
+                               {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                                {Math.abs(row.growth).toFixed(1)}%
                              </div>
                           </td>
@@ -443,8 +436,10 @@ export default function App() {
           </div>
         </section>
         
-        <footer className="mt-12 text-center pb-6 opacity-70">
-          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.4em]">© 2025 Khaleel Area Report | Copy right Khaleel Alsani</p>
+        <footer className="mt-20 text-center pb-10">
+          <p className="text-xs font-black text-slate-700 uppercase tracking-[0.5em] leading-loose">
+            © 2025 Khaleel Area Report | Copy right Khaleel Alsani
+          </p>
         </footer>
       </main>
     </div>
